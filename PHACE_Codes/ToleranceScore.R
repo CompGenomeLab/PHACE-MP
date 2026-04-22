@@ -1,25 +1,24 @@
-#!/usr/bin/env Rscript
+ #!/usr/bin/env Rscript
 library(ape)
 library(tidytree)
 library(stringr)
 library(dplyr)
 library(bio3d)
 library(Peptides)
-source("./position_score.R")
+source("./PHACE_Codes/position_score.R")
 
 args = commandArgs(trailingOnly=TRUE)
 
 aa_to_num <- function(aa) {
-  amino_acids <- c("G","A","L","M","F","W","K","Q","E","S","P","V","I","C","Y","H","R","N","D","T")
-  aa <- toupper(aa)
-  res <- match(aa, amino_acids)
-  res[is.na(res)] <- 21
-  return(res)
+  amino_acids <- c("G", "A", "L", "M", "F", "W", "K", "Q", "E", "S", "P", "V", "I", "C", "Y", "H", "R", "N", "D", "T")
+  num <- sapply(aa, function(a){ifelse(sum(amino_acids %in% a) == 1, as.numeric(which(amino_acids %in% a)), 21)})
+  # num <- ifelse(sum(amino_acids %in% aa) == 1, as.numeric(which(amino_acids %in% aa)), 21)
+  return(num)
 }
 
 num_to_aa <- function(num) {
-  amino_acids <- c("G","A","L","M","F","W","K","Q","E","S","P","V","I","C","Y","H","R","N","D","T")
-  aa <- ifelse(num == 21, "X", amino_acids[num])
+  amino_acids <- c("G", "A", "L", "M", "F", "W", "K", "Q", "E", "S", "P", "V", "I", "C", "Y", "H", "R", "N", "D", "T")
+  aa <- ifelse(num == 21, 21, amino_acids[num])
   return(aa)
 }
 
@@ -28,53 +27,55 @@ file_fasta <- args[2]
 file_nwk <- args[3]
 file_rst <- args[4]
 
-if (!all(file.exists(file_fasta, file_nwk, file_rst))) {
-  stop("One or more input files do not exist. Check your paths.")
-}
-
 output_name <- id
 
 pos_chosen <- "all"
 
-# Read tree file, NWK
 tr_org <- read.tree(file_nwk)
-tree_info <- as.data.frame(as_tibble(tr_org))
 
-# Read state file
+# --- MASKING PATCH START ---
+# Load metadata (MANDATORY for leaf-level masking)
+boundaries_path <- args[5]
+ortholog_table_path <- args[6]
+
+source("./PHACE_Codes/load_metadata.R")
+protein_boundaries <- load_protein_boundaries(boundaries_path)
+ortholog_matrix <- load_ortholog_table(ortholog_table_path, tr_org$tip.label)
+cat("Metadata loaded. Leaf-level masking enabled.\n")
+# --- MASKING PATCH END ---
+
+# Read ancestral state file
 x <- read.table(file = file_rst, sep = '\t', header = TRUE, fill = TRUE)
 x[,1] <- str_remove(x[,1], "Node")
-colnames(x)[4:ncol(x)] <- gsub("p_", replacement = "", x = colnames(x)[4:ncol(x)], fixed = TRUE )  
+colnames(x)[4:ncol(x)] <- gsub("p_", replacement = "", x = colnames(x)[4:ncol(x)], fixed = TRUE)
+
+# --- PARTITIONED STATE FIX START ---
+if ("Part" %in% colnames(x)) {
+  # optional safety check
+  if (max(x$Part, na.rm = TRUE) > nrow(protein_boundaries)) {
+    stop("State file Part indices exceed number of entries in protein_boundaries")
+  }
+
+  x$LocalSite <- x$Site
+
+  # map partition-local sites to global concatenated coordinates
+  x$Site <- protein_boundaries$start[x$Part] + x$LocalSite - 1
+
+  # reorder by node and global site
+  x <- x[order(as.numeric(x[,1]), x$Site), ]
+
+  cat("Partitioned .state file detected. Site column remapped to global concatenated positions.\n")
+}
+# --- PARTITIONED STATE FIX END ---
+
+tree_info <- as.data.frame(as_tibble(tr_org))
 
 # Read fasta file, MSA
 fasta <- read.fasta(file = file_fasta)
 msa <- fasta$ali
-
-# ----------------------------
-# Input validation checkpoints
-# ----------------------------
-
-# 1. Check that tree_info$label is not empty or all NA
-if (all(is.na(tree_info$label)) || length(tree_info$label) == 0) {
-  stop("tree_info$label is empty. Check that your .nwk file includes node labels (Node1, Node2, etc.).")
-}
-
-# 2. Check that the ASR probability table has expected shape
-expected_cols <- 23  # 1: NodeID, 2: Site, 3: something like Posterior?, then 20 amino acids
-if (ncol(x) != expected_cols) {
-  stop("Unexpected number of columns in ASR file. Expected ", expected_cols,
-       " but got ", ncol(x), ". Check your .state file format.")
-}
-
-# 3. Check that MSA dimensions match the tree
-if (nrow(msa) != length(tr_org$tip.label)) {
-  stop("MSA and tree tip label counts do not match: nrow(msa) = ", nrow(msa),
-       ", but tree has ", length(tr_org$tip.label), " leaves.")
-}
-
-# 4. Optional informative messages for users
-message("Tree info labels: ", length(tree_info$label), " entries")
-message("ASR table size: ", paste(dim(x), collapse=" x "))
-message("MSA size: ", paste(dim(msa), collapse=" x "))
+# #region agent log
+msa_nrow <- if (is.null(dim(msa))) length(msa) else nrow(msa)
+msa_ncol <- if (is.null(dim(msa))) NA else ncol(msa)
 
 
 # connections_1: Parent node, connections_2: connected node/leaf
@@ -83,7 +84,10 @@ connections_2 <- tree_info$node
 
 # Names of leaves
 names_all <- tr_org[["tip.label"]]
-msa <- msa[names_all, ]
+# --- TREE/MSA ORDER PATCH START ---
+msa <- reorder_msa_to_tree_tips(msa, names_all, msa_label = "AA MSA (ToleranceScore)")
+# --- TREE/MSA ORDER PATCH END ---
+
 # Number of total leaves&nodes
 num_leaves <- length(tr_org[["tip.label"]])
 num_nodes <- tr_org[["Nnode"]]
@@ -96,6 +100,10 @@ num_leaves_prev <- num_leaves
 
 # Total number of positions from ancestralProbs file
 total_pos <- max(x$Site)
+# #region agent log
+site_min <- min(x$Site, na.rm = TRUE)
+site_max <- max(x$Site, na.rm = TRUE)
+site_unique <- length(unique(x$Site))
 positions <- 1:total_pos
 score_all <- matrix(0, total_pos, 21)
 
@@ -107,12 +115,15 @@ leaf_names <- tree_info$label
 
 chosen_nodes2 <- chosen_nodes
 
-scores <- t(mapply(function(ps){position_score(ps, x, msa, trim_final, names_all, tr_org, num_nodes, num_leaves, tree_info, num_nodes, nodes_raxml, num_leaves, total_pos, nodes_raxml)}, rep(positions)))
+scores <- t(mapply(function(ps){
+  # --- MASKING PATCH START ---
+  mask_leaves <- get_masked_leaves_for_position(ps, protein_boundaries, ortholog_matrix)
+  # --- MASKING PATCH END ---
+  
+  position_score(ps, x, msa, trim_final, names_all, tr_org, num_nodes, num_leaves, tree_info, num_nodes, nodes_raxml, num_leaves, total_pos, nodes_raxml, mask_leaves = mask_leaves)
+}, rep(positions)))
 
-#tolerance_scores <- matrix(unlist(scores), nrow = length(positions), ncol = 20, byrow = TRUE)
 tolerance_scores <- cbind(positions, scores)
 colnames(tolerance_scores) <- c("Pos/AA", num_to_aa(1:20))
 
 write.csv(tolerance_scores, quote = F, row.names = F, paste("ToleranceScores/", output_name, ".csv", sep = ""))
-
-
