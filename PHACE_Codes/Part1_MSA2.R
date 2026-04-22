@@ -4,7 +4,11 @@ library(tidytree)
 library(stringr)
 library(dplyr)
 library(bio3d)
-source("./coev_diff_MSA2.R")
+source("./PHACE_Codes/coev_diff_MSA2.R")
+# --- TREE/MSA ORDER PATCH START ---
+# Load helper to enforce MSA row order = tree tip order (strict check).
+source("./PHACE_Codes/load_metadata.R")
+# --- TREE/MSA ORDER PATCH END ---
 args = commandArgs(trailingOnly=TRUE)
 
 #ii <- as.numeric(args[1])
@@ -23,9 +27,9 @@ num_to_aa <- function(num) {
 
 id <- args[1]
 
-file_fasta <- sprintf("%s_MSA2.fasta", id)
-file_nwk <- sprintf("%s_MSA2.treefile", id, id)
-file_rst <- sprintf("%s_MSA2.state", id, id)
+file_fasta <- sprintf("MSA2/%s_MSA2.fasta", id)
+file_nwk <- sprintf("MSA_ASRs/%s_MSA2.treefile", id)
+file_rst <- sprintf("MSA_ASRs/%s_MSA2.state",id)
 
 output_name <- id
 
@@ -49,7 +53,9 @@ fasta_node <- c()
 
 # Names of leaves
 names_all <- tr_org[["tip.label"]]
-msa <- msa[names_all, ]
+# --- TREE/MSA ORDER PATCH START ---
+msa <- reorder_msa_to_tree_tips(msa, names_all, msa_label = "MSA2 (Part1)")
+# --- TREE/MSA ORDER PATCH END ---
 # Number of total leaves&nodes
 num_leaves <- length(tr_org[["tip.label"]])
 num_nodes <- tr_org[["Nnode"]]
