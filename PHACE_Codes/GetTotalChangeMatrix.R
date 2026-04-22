@@ -94,4 +94,4 @@ mat_of_changes$aa_change <-  mat_of_aa_changes_combined
 mat_of_changes$aff_branch_num <- mat_of_num_aff_branches_combined
 mat_of_changes$aff_branches <- mat_of_aff_branches_combined
 mat_of_changes$info <- mat_of_info
-save(mat_of_changes, file=sprintf("%s_TotalChange.RData", id))
+save(mat_of_changes, file=sprintf("totalChanges/%s_TotalChange.RData", id))
