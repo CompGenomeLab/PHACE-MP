@@ -1,11 +1,10 @@
-position_score <- function(ps, x, msa, trim_final, names_all, tr_org, num_nodes, num_leaves, tree_info, num_nodes_prev, nodes_raxml_prev, num_leaves_prev, total_pos, nodes_raxml) {
+position_score <- function(ps, x, msa, trim_final, names_all, tr_org, num_nodes, num_leaves, tree_info, num_nodes_prev, nodes_raxml_prev, num_leaves_prev, total_pos, nodes_raxml, mask_leaves = NULL) {
   position <- ps
   print(ps)
   
   rows_for_ps <- position + total_pos*(0:(num_nodes-1))
   state_ps <- x[rows_for_ps,]
   
-  # Validation: check extracted rows
   if (any(is.na(state_ps))) {
     warning("NA values found in state_ps subset from x at position ", position)
   }
@@ -19,9 +18,18 @@ position_score <- function(ps, x, msa, trim_final, names_all, tr_org, num_nodes,
   
   matrix_prob <- matrix(0, num_nodes, 20)
   
-  probs_not_ordered <- data.matrix((state_ps[, (4:ncol(state_ps))]))
+  prob_col_indices <- which(aa_to_num(colnames(x)) <= 20)
+  probs_not_ordered <- data.matrix(state_ps[, prob_col_indices])
   rownames(probs_not_ordered) <- NULL
-  probs_order <- aa_to_num(colnames(x)[4:ncol(state_ps)])
+  probs_order <- aa_to_num(colnames(x)[prob_col_indices])
+  # #region agent log
+  has_invalid <- any(probs_order < 1 | probs_order > 20)
+  if (ps == 1 || has_invalid) {
+    bad_labels <- colnames(x)[prob_col_indices][aa_to_num(colnames(x)[prob_col_indices]) == 21]
+    bad_labels_preview <- paste(head(bad_labels, 5), collapse = "|")
+    bad_labels_preview <- gsub("\"", "'", bad_labels_preview)
+  }
+  # #endregion
   
   # Validation before assigning
   if (any(is.na(probs_order))) {
@@ -39,8 +47,6 @@ position_score <- function(ps, x, msa, trim_final, names_all, tr_org, num_nodes,
   if (max(probs_order) > ncol(matrix_prob)) {
     stop("probs_order includes index larger than number of matrix_prob columns (", max(probs_order), ")")
   }
-  
-  message("Debug: num_nodes=", num_nodes, " probs_order length=", length(probs_order), " probs_not_ordered dim=", paste(dim(probs_not_ordered), collapse="x"))
 
   matrix_prob[,probs_order] <- probs_not_ordered
   matrix_prob <- matrix_prob[nodes_raxml,]
@@ -127,6 +133,15 @@ position_score <- function(ps, x, msa, trim_final, names_all, tr_org, num_nodes,
     s2 <- sapply(1:20, function(ii){
       diff_lf <- diff_leaves[1:num_leaves,ii]
       diff_lf[gaps] <-  0
+      
+      # --- MASKING PATCH START ---
+      # Direct indexing is safe here because diff_lf is already in tr_org$tip.label order
+      # (msa is reordered to names_all upstream, and diff_leaves inherits that ordering)
+      if (!is.null(mask_leaves) && length(mask_leaves) > 0) {
+        diff_lf[mask_leaves] <- 0
+      }
+      # --- MASKING PATCH END ---
+      
       diff_lf[diff_lf<0] <- 0
       
       
@@ -134,7 +149,14 @@ position_score <- function(ps, x, msa, trim_final, names_all, tr_org, num_nodes,
       score[ii] <<- score[ii] + s1
     })
     
-    scores <- (score)/(num_nodes+num_leaves)
+    # --- MASKING PATCH START ---
+    # Adjust normalization for masked leaves
+    effective_count <- num_nodes + num_leaves
+    if (!is.null(mask_leaves) && length(mask_leaves) > 0) {
+      effective_count <- effective_count - length(mask_leaves)
+    }
+    scores <- (score) / effective_count
+    # --- MASKING PATCH END ---
     
     return(scores)
 }
