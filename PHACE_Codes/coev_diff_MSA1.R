@@ -73,8 +73,6 @@ compute_difference <- function(ps, ord, levels, tree_new, tree_new_info, num_nod
   prob_leaves <- matrix(0, num_leaves, 2)
   prob_leaves[cbind(which(position_num <= 2), position_num[which(position_num <= 2)])] <- 1
   
-  gaps <- which(position_num == 21)
-  
   all_prob <- rbind(prob_leaves, matrix_prob)
   
   chosen_nodes2 <- rbind(c(0, root_node), chosen_nodes2)
@@ -82,6 +80,30 @@ compute_difference <- function(ps, ord, levels, tree_new, tree_new_info, num_nod
   conn_left <- chosen_nodes2[,2] #tree_new_info$parent
   conn_right <- chosen_nodes2[,1] #tree_new_info$node
   
+#  faa <- names(which(table(msa_upd[,ps])==max(table(msa_upd[,ps]))))
+#  if (faa=="G"){
+#    fa <- c(0, 1)
+#  } else {
+#    fa <- c(1, 0)
+#  }
+ 
+ 
+  # --- DOMINANT STATE FIX START ---
+  # Robust dominant state calculation: ignore ? and handle ties
+  tab <- table(msa_upd[, ps])
+  tab <- tab[names(tab) %in% c("C","G")]  # ignore ?, -, etc.
+
+  if (length(tab) == 0) {
+    faa <- "C"
+  } else {
+    c_ct <- if ("C" %in% names(tab)) tab[["C"]] else 0
+    g_ct <- if ("G" %in% names(tab)) tab[["G"]] else 0
+    faa <- if (g_ct > c_ct) "G" else "C"  # ties -> C
+  }
+
+  fa <- if (faa == "G") c(0,1) else c(1,0)
+  # --- DOMINANT STATE FIX END ---
+   
   nms <- num_to_aa(1:2)
   diff <- matrix(0,num_branch,1)
   mat2 <- matrix(0,num_branch,1)
@@ -96,8 +118,8 @@ compute_difference <- function(ps, ord, levels, tree_new, tree_new_info, num_nod
     rg <- chosen_nodes2[i,2]
     
     if (lf==0){
-      d_vec <- all_prob[rg, ] - c(0, 1)
-      first_aa <- "C"
+      d_vec <- all_prob[rg, ] - fa
+      first_aa <- faa
     } else {
       d_vec <- all_prob[rg, ] - all_prob[lf, ]
       first_aa <- fasta_node_new[(lf-num_leaves),ps]
@@ -115,6 +137,20 @@ compute_difference <- function(ps, ord, levels, tree_new, tree_new_info, num_nod
     diff_mat[i, ] <- d_vec
     m1 <- first_aa
     m2 <- second_aa
+    
+    # --- MISSING DATA SHORT-CIRCUIT START ---
+    # If either state is ? (missing data), force no change event
+    # This prevents ? from generating spurious labels like C?, A?, etc.
+    if (m1 == "?" || m2 == "?") {
+      diff[i] <- 0
+      diff_mat[i, ] <- 0
+      mat2[i] <- "--"
+      num_of_ch[i] <- 0
+      aff_brs[i] <- 0
+      next
+    }
+    # --- MISSING DATA SHORT-CIRCUIT END ---
+    
     if (m1==m2){
       m1 <- "-"
       m2 <- "-"
@@ -183,5 +219,4 @@ compute_difference <- function(ps, ord, levels, tree_new, tree_new_info, num_nod
   all_diff$extra <- c(diff[1], mat2[1], num_of_ch[1], aff_brs[1])
   return(all_diff)
 }
-
 
