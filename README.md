@@ -44,6 +44,7 @@ The scripts follow the same folder conventions as original PHACE. Typical layout
 
 ```
 PHACE_Codes/
+  load_metadata.R
   ToleranceScore.R
   MSA1.R
   MSA2.R
@@ -53,7 +54,8 @@ PHACE_Codes/
   coev_diff_MSA2.R
   GetTotalChangeMatrix.R
   PHACE_parallel.R
-  load_metadata.R
+  merge_PHACE_scores.py
+  
 
 Data/
   vals_MSA1.txt
@@ -226,17 +228,17 @@ Outputs:
 
 ### Step 7 — Merge array parts into final table (Python)
 
-This repo includes `merge_results.py` which merges `PHACE_part*.RData` outputs into a single file and writes:
+This repo includes `merge_PHACE_scores.py` which merges `PHACE_part*.RData` outputs into a single file and writes:
 - `<id>_PHACE_internalBranchEffectRemoved_scores.feather`
 - `<id>_PHACE_internalBranchEffectRemoved_scores.npz`
 
 Usage:
 ```bash
-python merge_results.py <id> <num_parts>
+python merge_PHACE_scores.py <id> <num_parts>
 ```
 
 > Dependencies: `numpy`, `pandas`, `pyreadr`.  
-> If you see a `NameError: sys is not defined`, add `import sys` at the top of `merge_results.py`.
+> If you see a `NameError: sys is not defined`, add `import sys` at the top of `merge_PHACE_scores.py`.
 
 ---
 
