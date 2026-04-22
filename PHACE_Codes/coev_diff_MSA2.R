@@ -88,17 +88,21 @@ compute_difference <- function(ps, ord, levels, tree_new, tree_new_info, num_nod
 #  }
  
  
-  faa <- names(which(table(msa_upd[,ps])==max(table(msa_upd[,ps]))))
-  if (length(faa)==2){
+  # --- DOMINANT STATE FIX START ---
+  # Robust dominant state calculation: ignore ? and handle ties
+  tab <- table(msa_upd[, ps])
+  tab <- tab[names(tab) %in% c("C","G")]  # ignore ?, -, etc.
+
+  if (length(tab) == 0) {
     faa <- "C"
-    fa <- c(1, 0)
   } else {
-    if (faa=="G"){
-      fa <- c(0, 1)
-    } else {
-      fa <- c(1, 0)
-    }
+    c_ct <- if ("C" %in% names(tab)) tab[["C"]] else 0
+    g_ct <- if ("G" %in% names(tab)) tab[["G"]] else 0
+    faa <- if (g_ct > c_ct) "G" else "C"  # ties -> C
   }
+
+  fa <- if (faa == "G") c(0,1) else c(1,0)
+  # --- DOMINANT STATE FIX END ---
    
   nms <- num_to_aa(1:2)
   diff <- matrix(0,num_branch,1)
@@ -133,6 +137,20 @@ compute_difference <- function(ps, ord, levels, tree_new, tree_new_info, num_nod
     diff_mat[i, ] <- d_vec
     m1 <- first_aa
     m2 <- second_aa
+    
+    # --- MISSING DATA SHORT-CIRCUIT START ---
+    # If either state is ? (missing data), force no change event
+    # This prevents ? from generating spurious labels like C?, A?, etc.
+    if (m1 == "?" || m2 == "?") {
+      diff[i] <- 0
+      diff_mat[i, ] <- 0
+      mat2[i] <- "--"
+      num_of_ch[i] <- 0
+      aff_brs[i] <- 0
+      next
+    }
+    # --- MISSING DATA SHORT-CIRCUIT END ---
+    
     if (m1==m2){
       m1 <- "-"
       m2 <- "-"
