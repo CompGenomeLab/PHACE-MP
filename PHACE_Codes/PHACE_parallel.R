@@ -355,24 +355,11 @@ for (k in seq_along(job_pairs)) {
         plc <- which(df>=0.5)
         weight_branch[plc] <- 1
         
-        cc <- pmax(pos1_totalscore, pos2_totalscore)
+        cc <- pmax(pos1_totalscore, pos2_totalscore) # pmax is fast
         cc[cc==0] <- 1
         weight_branch2 <- sqrt(weight_branch*cc)
-
-        sig <- (weight_branch > 0) & (pos1_totalscore > 0 | pos2_totalscore > 0)
-        n_sig <- sum(sig)
-
-        Wsig <- weight_branch2[sig]
-        neff_sig <- if (length(Wsig) > 0) (sum(Wsig)^2 / sum(Wsig^2)) else 0
-
-        MIN_SIG  <- max(20, ceiling(0.05 * num_branch))
-        MIN_NEFF <- max(10, ceiling(0.03 * num_branch))
-
-        if (n_sig < MIN_SIG || neff_sig < MIN_NEFF) {
-        score3 <- -1
-        } else {
-        score3 <- wccc(pos1_totalscore, pos2_totalscore, weight_branch2) * weight_inc1
-        }
+        score3 <- wccc(pos1_totalscore, pos2_totalscore, weight_branch2)*weight_inc1
+          
                 
         }
     }
