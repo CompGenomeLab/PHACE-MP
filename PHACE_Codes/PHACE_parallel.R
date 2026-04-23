@@ -341,10 +341,10 @@ for (k in seq_along(job_pairs)) {
                                 which(data$dif_aa1!="X-"))
         
         if (length(inc_gap1)>0){
-            data[inc_gap1, 1] <- 0
+            data[inc_gap1, dif1] <- 0
         }
         if (length(inc_gap2)>0){
-            data[inc_gap2, 2] <- 0
+            data[inc_gap2, dif2] <- 0
         }
         
         pos1_totalscore <- as.numeric(data$dif1)
