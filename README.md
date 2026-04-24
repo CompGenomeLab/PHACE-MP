@@ -80,10 +80,12 @@ PHACE_scores/<id>/
 At minimum:
 
 - **Concatenated AA alignment** (FASTA)
-- **Tree** (Newick / IQ‑TREE `.treefile`) with tip labels matching MSA sequence names
-- **IQ‑TREE `.state`** output (for tolerance scoring step; see below)
+- **Tree** (Newick / IQ‑TREE `.treefile`) 
+- **ASR output** (IQ‑TREE `.state`) 
 - **Ortholog presence table** (`.tsv`)
 - **Protein boundaries** (`.csv`/`.txt`)
+
+> Partitioned tree search and ASR are optional, but recommended for concatenated multi-protein alignments. If partitioned ASR outputs are provided, the pipeline recognizes the partition structure and maps sites accordingly
 
 For ASR of MSA1 and MSA2 you will also use:
 - `Data/vals_MSA1.txt`
