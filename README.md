@@ -108,9 +108,9 @@ mkdir -p ToleranceScores MSA1 MSA2 AncestralStates Part1_AC Part1_Gap totalChang
 ```bash
 Rscript PHACE_Codes/ToleranceScore.R \
   <id> \
-  <concatenated_AA.fasta> \
+  <concatenatedMSA.fasta> \
   <tree.treefile> \
-  <AA_ASR.state> \
+  <ASR.state> \
   <boundaries.csv> \
   <ortholog_selection_table.tsv>
 ```
@@ -118,7 +118,7 @@ Rscript PHACE_Codes/ToleranceScore.R \
 **Output**
 - `ToleranceScores/<id>.csv`
 
-> Note: This step is the only one that needs the AA ASR `.state` file.
+> Note: This step is the only one that needs the ASR `.state` file.
 
 ---
 
@@ -128,7 +128,7 @@ Rscript PHACE_Codes/ToleranceScore.R \
 ```bash
 Rscript PHACE_Codes/MSA1.R \
   <id> \
-  <concatenated_AA.fasta> \
+  <concatenatedMSA.fasta> \
   <boundaries.csv> \
   <ortholog_selection_table.tsv>
 ```
@@ -154,7 +154,7 @@ This produces:
 ```bash
 Rscript PHACE_Codes/MSA2.R \
   <id> \
-  <concatenated_AA.fasta> \
+  <concatenatedMSA.fasta> \
   <boundaries.csv> \
   <ortholog_selection_table.tsv>
 ```
@@ -208,7 +208,7 @@ Output:
 3. `<num_jobs>` (total array size)
 4. `<ortholog_selection_table.tsv>`
 5. `<boundaries.csv>`
-6. `<concatenated_AA.fasta>` (original AA fasta; used for position→protein mapping)
+6. `<concatenatedMSA.fasta>` (original MSA fasta)
 
 Example (single task):
 ```bash
