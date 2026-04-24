@@ -89,8 +89,6 @@ For ASR of MSA1 and MSA2 you will also use:
 - `Data/vals_MSA1.txt`
 - `Data/vals_MSA2.txt`
 
-> If you already have a concatenated‑alignment ML tree and partitioning scheme (per protein block), you can reuse that scheme for MSA1/MSA2 because these encodings preserve alignment length and coordinates.
-
 ---
 
 ## Step‑by‑step workflow
