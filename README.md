@@ -99,7 +99,7 @@ Below, `<id>` is your analysis identifier (used as filename prefix), and paths a
 
 ### Step 0 — (Optional) Create folders
 ```
-mkdir -p ToleranceScores MSA1 MSA2 AncestralStates Part1_AC Part1_Gap totalChanges PHACE_scores/<id>
+mkdir -p ToleranceScores MSA1 MSA2 MSA_ASRs Part1_AC Part1_Gap totalChanges PHACE_scores/<id>
 ```
 
 ### Step 1 — Tolerance scores (AA MSA + tree + ASR .state)
@@ -143,8 +143,8 @@ iqtree2 -s MSA1/<id>_MSA1.fasta -te <tree.treefile> -blfix \
 ```
 
 This produces:
-- `AncestralStates/<id>_MSA1.state`
-- `AncestralStates/<id>_MSA1.treefile` (and other IQ‑TREE outputs)
+- `MSA_ASRs/<id>_MSA1.state`
+- `MSA_ASRs/<id>_MSA1.treefile` (and other IQ‑TREE outputs)
 
 ---
 
