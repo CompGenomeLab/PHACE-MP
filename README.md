@@ -64,7 +64,7 @@ Data/
 ToleranceScores/
 MSA1/
 MSA2/
-AncestralStates/
+MSA_ASRs/
 Part1_AC/
 Part1_Gap/
 totalChanges/
@@ -139,7 +139,7 @@ Rscript PHACE_Codes/MSA1.R \
 **Run IQ‑TREE2 ASR on MSA1**
 ```bash
 iqtree2 -s MSA1/<id>_MSA1.fasta -te <tree.treefile> -blfix \
-  -m Data/vals_MSA1.txt -asr --prefix AncestralStates/<id>_MSA1 --safe
+  -m Data/vals_MSA1.txt -asr --prefix MSA_ASRs/<id>_MSA1 --safe
 ```
 
 This produces:
@@ -165,7 +165,7 @@ Rscript PHACE_Codes/MSA2.R \
 **Run IQ‑TREE2 ASR on MSA2**
 ```bash
 iqtree2 -s MSA2/<id>_MSA2.fasta -te <tree.treefile> -blfix \
-  -m Data/vals_MSA2.txt -asr --prefix AncestralStates/<id>_MSA2 --safe
+  -m Data/vals_MSA2.txt -asr --prefix MSA_ASRs/<id>_MSA2 --safe
 ```
 
 ---
